@@ -7,5 +7,7 @@
 		<a class="<?= request()->routeIs('about') ? 'active' : '' ?>" href="<?= route('about') ?>">About</a>
 		<button class="search-button" type="button" aria-expanded="false" aria-controls="search-panel" aria-label="Open search">Search <span>⌕</span></button>
 		<a class="subscribe-link" href="<?= route('home') ?>#newsletter">Subscribe</a>
+		<a class="subscribe-link" href="<?= route('login') ?>">Log in</a>
+		<a class="subscribe-link" href="<?= route('register') ?>">Register</a>
 	</nav>
 </header>
