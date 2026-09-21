@@ -1,0 +1,16 @@
+<div class="grid gap-6 md:grid-cols-2">
+    <div class="md:col-span-2">
+        <x-input-label for="title" value="Title" />
+        <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title', $post->title ?? '')" required autofocus />
+        <x-input-error class="mt-2" :messages="$errors->get('title')" />
+    </div>
+    <div><x-input-label for="category" value="Category" /><x-text-input id="category" name="category" type="text" class="mt-1 block w-full" :value="old('category', $post->category ?? '')" placeholder="Ideas" required /><x-input-error class="mt-2" :messages="$errors->get('category')" /></div>
+    <div><x-input-label for="author" value="Author" /><x-text-input id="author" name="author" type="text" class="mt-1 block w-full" :value="old('author', $post->author ?? '')" required /><x-input-error class="mt-2" :messages="$errors->get('author')" /></div>
+    <div class="md:col-span-2"><x-input-label for="image_url" value="Image URL" /><x-text-input id="image_url" name="image_url" type="url" class="mt-1 block w-full" :value="old('image_url', $post->image_url ?? '')" placeholder="https://..." required /><x-input-error class="mt-2" :messages="$errors->get('image_url')" /></div>
+    <div class="md:col-span-2"><x-input-label for="excerpt" value="Excerpt" /><textarea id="excerpt" name="excerpt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500" required>{{ old('excerpt', $post->excerpt ?? '') }}</textarea><x-input-error class="mt-2" :messages="$errors->get('excerpt')" /></div>
+    <div class="md:col-span-2"><x-input-label for="body" value="Story body" /><textarea id="body" name="body" rows="8" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">{{ old('body', $post->body ?? '') }}</textarea><x-input-error class="mt-2" :messages="$errors->get('body')" /></div>
+    <div><x-input-label for="read_time" value="Read time (minutes)" /><x-text-input id="read_time" name="read_time" type="number" min="1" max="60" class="mt-1 block w-full" :value="old('read_time', $post->read_time ?? 5)" required /><x-input-error class="mt-2" :messages="$errors->get('read_time')" /></div>
+    <div><x-input-label for="sort_order" value="Display order" /><x-text-input id="sort_order" name="sort_order" type="number" min="0" max="9999" class="mt-1 block w-full" :value="old('sort_order', $post->sort_order ?? 0)" required /><x-input-error class="mt-2" :messages="$errors->get('sort_order')" /></div>
+    <div class="flex items-center gap-3"><input id="is_published" name="is_published" type="checkbox" value="1" class="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500" @checked(old('is_published', $post->is_published ?? true))><x-input-label for="is_published" value="Published" /></div>
+    <div class="flex items-center gap-3"><input id="is_featured" name="is_featured" type="checkbox" value="1" class="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500" @checked(old('is_featured', $post->is_featured ?? false))><x-input-label for="is_featured" value="Feature this story" /></div>
+</div>

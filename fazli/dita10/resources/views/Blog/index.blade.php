@@ -1,17 +1,23 @@
 @extends('Blog.master')
 
 @section('content')
+@php
+    $featured = $posts->firstWhere('is_featured', true) ?? $posts->first();
+    $latest = $posts->reject(fn ($post) => $featured && $post->is($featured));
+@endphp
 <main id="top">
     <section class="hero" id="journal">
         <div class="hero-heading"><span class="eyebrow">Independent journal <i></i> Est. 2024</span><h1>Stories for<br><em>the curious.</em></h1></div>
         <div class="hero-intro"><p>A quiet corner of the internet for ideas, places, and people worth paying attention to.</p><a class="text-link" href="#stories">Explore the journal <span>↘</span></a></div>
     </section>
     <div class="search-panel" id="search-panel" hidden><label for="story-search">Search the journal</label><div class="search-input-wrap"><input id="story-search" type="search" placeholder="Try “rituals” or “places”"><span>⌕</span></div><p class="search-result" aria-live="polite"></p></div>
-    <article class="feature-story" id="stories"><a class="feature-image" href="#newsletter"><img src="https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1400&q=85" alt="Sunlit green leaves" loading="eager"></a><div class="feature-copy"><span class="category">The slow life</span><h2>The art of growing a life, one small ritual at a time</h2><p>What happens when we stop treating our days as something to get through, and start noticing what they are made of?</p><div class="story-footer"><span>MAYA ELLIS <i></i> 6 MIN READ</span><a class="text-link" href="#newsletter">Read story <span>→</span></a></div></div></article>
+    @if ($featured)
+        <article class="feature-story" id="stories"><a class="feature-image" href="#newsletter"><img src="{{ $featured->image_url }}" alt="{{ $featured->title }}" loading="eager"></a><div class="feature-copy"><span class="category">{{ $featured->category }}</span><h2>{{ $featured->title }}</h2><p>{{ $featured->excerpt }}</p><div class="story-footer"><span>{{ strtoupper($featured->author) }} <i></i> {{ $featured->read_time }} MIN READ</span><a class="text-link" href="#newsletter">Read story <span>→</span></a></div></div></article>
+    @endif
     <section class="latest" aria-labelledby="latest-title"><div class="section-heading"><div><span class="eyebrow">The archive</span><h2 id="latest-title">Latest from the journal</h2></div><a class="text-link" href="#latest-title">View all stories <span>→</span></a></div><div class="filter-row" aria-label="Filter stories"><button class="filter active" type="button" data-filter="all">All stories</button><button class="filter" type="button" data-filter="places">Places</button><button class="filter" type="button" data-filter="ideas">Ideas</button><button class="filter" type="button" data-filter="people">People</button></div><div class="story-grid">
-        <article class="story-card" data-category="places" data-title="In praise of taking the long way home"><a class="card-image" href="#newsletter"><img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85" alt="Road through a mountain landscape" loading="lazy"></a><span class="category">Places</span><h3>In praise of taking the long way home</h3><p>A dispatch from the roads that give us a little more than directions.</p><span class="byline">JUNE PARK <i></i> 4 MIN READ</span></article>
-        <article class="story-card" data-category="ideas" data-title="Keep a notebook change your mind"><a class="card-image" href="#newsletter"><img src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=85" alt="Person writing in a notebook" loading="lazy"></a><span class="category">Ideas</span><h3>Keep a notebook, change your mind</h3><p>The simple, enduring practice of leaving room for new thoughts.</p><span class="byline">THEO WRIGHT <i></i> 7 MIN READ</span></article>
-        <article class="story-card" data-category="people" data-title="How small teams make meaningful work"><a class="card-image" href="#newsletter"><img src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=85" alt="Creative team around a table" loading="lazy"></a><span class="category">People</span><h3>How small teams make meaningful work</h3><p>Three creative duos on trust, taste, and knowing when to stop.</p><span class="byline">NORA BELL <i></i> 5 MIN READ</span></article>
+        @foreach ($latest as $post)
+            <article class="story-card" data-category="{{ strtolower($post->category) }}" data-title="{{ $post->title }}"><a class="card-image" href="#newsletter"><img src="{{ $post->image_url }}" alt="{{ $post->title }}" loading="lazy"></a><span class="category">{{ $post->category }}</span><h3>{{ $post->title }}</h3><p>{{ $post->excerpt }}</p><span class="byline">{{ strtoupper($post->author) }} <i></i> {{ $post->read_time }} MIN READ</span></article>
+        @endforeach
     </div></section>
 </main>
 @endsection

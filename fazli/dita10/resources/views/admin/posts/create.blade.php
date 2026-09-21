@@ -1,0 +1,4 @@
+<x-app-layout>
+    <x-slot name="header"><p class="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Field Notes / Admin</p><h2 class="mt-1 text-2xl font-semibold text-gray-900">New story</h2></x-slot>
+    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"><form method="POST" action="{{ route('admin.posts.store') }}" class="space-y-8 border border-gray-200 bg-white p-6 shadow-sm sm:p-8">@csrf @include('admin.posts._form')<div class="flex items-center justify-end gap-4 border-t border-gray-100 pt-6"><a href="{{ route('admin.posts.index') }}" class="text-sm font-semibold text-gray-600">Cancel</a><x-primary-button>Publish story</x-primary-button></div></form></div>
+</x-app-layout>
