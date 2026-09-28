@@ -7,7 +7,14 @@
 		<a class="<?= request()->routeIs('about') ? 'active' : '' ?>" href="<?= route('about') ?>">About</a>
 		<button class="search-button" type="button" aria-expanded="false" aria-controls="search-panel" aria-label="Open search">Search <span>⌕</span></button>
 		<a class="subscribe-link" href="<?= route('home') ?>#newsletter">Subscribe</a>
-		<a class="subscribe-link" href="<?= route('login') ?>">Log in</a>
-		<a class="subscribe-link" href="<?= route('register') ?>">Register</a>
+		<?php if (Auth::check()): ?>
+			<form method="POST" action="<?= route('logout') ?>" class="logout-form">
+				<?= csrf_field() ?>
+				<button type="submit" class="subscribe-link logout-button">Log out</button>
+			</form>
+		<?php else: ?>
+			<a class="subscribe-link" href="<?= route('login') ?>">Log in</a>
+			<a class="subscribe-link" href="<?= route('register') ?>">Register</a>
+		<?php endif; ?>
 	</nav>
 </header>

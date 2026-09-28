@@ -21,10 +21,6 @@ Route::view('/about', 'Blog.about')->name('about');
 
 Route::view('/contact', 'Blog.contact')->name('contact');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -32,6 +28,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', fn () => redirect()->route('admin.posts.index'))->name('index');
     Route::resource('posts', PostController::class)->except('show');
 });
 

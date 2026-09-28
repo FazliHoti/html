@@ -16,7 +16,26 @@
     @endif
     <section class="latest" aria-labelledby="latest-title"><div class="section-heading"><div><span class="eyebrow">The archive</span><h2 id="latest-title">Latest from the journal</h2></div><a class="text-link" href="#latest-title">View all stories <span>→</span></a></div><div class="filter-row" aria-label="Filter stories"><button class="filter active" type="button" data-filter="all">All stories</button><button class="filter" type="button" data-filter="places">Places</button><button class="filter" type="button" data-filter="ideas">Ideas</button><button class="filter" type="button" data-filter="people">People</button></div><div class="story-grid">
         @foreach ($latest as $post)
-            <article class="story-card" data-category="{{ strtolower($post->category) }}" data-title="{{ $post->title }}"><a class="card-image" href="#newsletter"><img src="{{ $post->image_url }}" alt="{{ $post->title }}" loading="lazy"></a><span class="category">{{ $post->category }}</span><h3>{{ $post->title }}</h3><p>{{ $post->excerpt }}</p><span class="byline">{{ strtoupper($post->author) }} <i></i> {{ $post->read_time }} MIN READ</span></article>
+            <article class="story-card" data-category="{{ strtolower($post->category) }}" data-title="{{ $post->title }}">
+                <a class="card-image" href="#newsletter"><img src="{{ $post->image_url }}" alt="{{ $post->title }}" loading="lazy"></a>
+                <span class="category">{{ $post->category }}</span>
+                <h3>{{ $post->title }}</h3>
+                <p>{{ $post->excerpt }}</p>
+                <span class="byline">{{ strtoupper($post->author) }} <i></i> {{ $post->read_time }} MIN READ</span>
+
+                @auth
+                    @if (Auth::user()->isAdmin())
+                        <div class="mt-4 flex items-center gap-3 text-sm">
+                            <a class="font-semibold text-orange-700 hover:text-orange-900" href="{{ route('admin.posts.edit', $post) }}">Edit</a>
+                            <form method="POST" action="{{ route('admin.posts.destroy', $post) }}" onsubmit="return confirm('Delete this story permanently?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="font-semibold text-red-600 hover:text-red-800" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    @endif
+                @endauth
+            </article>
         @endforeach
     </div></section>
 </main>
