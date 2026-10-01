@@ -43,7 +43,16 @@ class GameController extends Controller
         $favoriteCount = $game->favorites()->count();
         $leaderboard = $game->scores()->with('user')->orderByDesc('score')->limit(5)->get();
 
-        return view('games.show', compact('game', 'relatedGames', 'averageRating', 'favoriteCount', 'leaderboard'));
+        $gameEmbedUrls = [
+            '2048' => '/games/2048.html',
+            'snake' => '/games/snake.html',
+            'tetris' => '/games/tetris.html',
+            'breakout' => '/games/breakout.html',
+        ];
+
+        $gameEmbedUrl = $gameEmbedUrls[$game->slug] ?? null;
+
+        return view('games.show', compact('game', 'relatedGames', 'averageRating', 'favoriteCount', 'leaderboard', 'gameEmbedUrl'));
     }
 
     public function toggleFavorite(Game $game): RedirectResponse

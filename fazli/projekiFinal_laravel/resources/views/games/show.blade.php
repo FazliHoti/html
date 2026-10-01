@@ -29,7 +29,7 @@
                             <h2 class="text-xl font-bold text-white">Mini game</h2>
                             <span class="text-sm text-slate-400">{{ $averageRating }}/5 rating</span>
                         </div>
-                        <div id="game-display" data-game-slug="{{ $game->slug }}" data-game-name="{{ $game->name }}" class="mt-5 rounded-2xl border border-dashed border-slate-600 bg-slate-900 text-center text-slate-200"></div>
+                        <div id="game-display" data-game-slug="{{ $game->slug }}" data-game-name="{{ $game->name }}" data-game-url="{{ $gameEmbedUrl ?? '' }}" class="mt-5 rounded-2xl border border-dashed border-slate-600 bg-slate-900 text-center text-slate-200"></div>
                     </div>
                 </div>
             </div>

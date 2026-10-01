@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Game;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,10 +16,10 @@ class GameHubTest extends TestCase
     {
         $category = Category::factory()->create(['name' => 'Action']);
         Game::factory()->create([
-            'name' => 'Space Dodge',
+            'name' => 'Tetris',
             'category_id' => $category->id,
-            'slug' => 'space-dodge',
-            'description' => 'A fast arcade survival game.',
+            'slug' => 'tetris',
+            'description' => 'A classic falling-block puzzle game.',
             'featured' => true,
         ]);
 
@@ -26,22 +27,32 @@ class GameHubTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Game Hub');
-        $response->assertSee('Space Dodge');
+        $response->assertSee('Tetris');
     }
 
     public function test_game_detail_page_has_a_mount_point_for_its_mini_game(): void
     {
         $category = Category::factory()->create(['name' => 'Action']);
         $game = Game::factory()->create([
-            'name' => 'Space Dodge',
+            'name' => 'Tetris',
             'category_id' => $category->id,
-            'slug' => 'space-dodge',
+            'slug' => 'tetris',
         ]);
 
         $response = $this->get(route('games.show', $game->slug));
 
         $response->assertOk();
-        $response->assertSee('data-game-slug="space-dodge"', false);
+        $response->assertSee('data-game-slug="tetris"', false);
         $response->assertSee('id="game-display"', false);
+    }
+
+    public function test_database_seed_populates_open_source_games(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseHas('games', ['name' => 'Tetris', 'slug' => 'tetris']);
+        $this->assertDatabaseHas('games', ['name' => 'Snake', 'slug' => 'snake']);
+        $this->assertDatabaseHas('games', ['name' => 'Pong', 'slug' => 'pong']);
+        $this->assertDatabaseMissing('games', ['name' => 'Space Dodge']);
     }
 }

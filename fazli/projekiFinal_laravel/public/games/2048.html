@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2048</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      margin: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      width: min(92vw, 420px, calc(100vh - 80px));
+      background: #1f2937;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .score {
+      background: #374151;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #22d3ee;
+      color: #111827;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      background: #374151;
+      padding: 10px;
+      border-radius: 16px;
+    }
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      font-size: clamp(1.1rem, 3vw, 2rem);
+      font-weight: 800;
+      background: rgba(255,255,255,0.08);
+      color: #f8fafc;
+    }
+    .empty { background: rgba(255,255,255,0.06); }
+    .tile-2 { background: #f3f4f6; color: #111827; }
+    .tile-4 { background: #dbeafe; color: #111827; }
+    .tile-8 { background: #bfdbfe; color: #111827; }
+    .tile-16 { background: #93c5fd; color: #111827; }
+    .tile-32 { background: #7dd3fc; color: #111827; }
+    .tile-64 { background: #67e8f9; color: #111827; }
+    .tile-128 { background: #a7f3d0; color: #111827; }
+    .tile-256 { background: #6ee7b7; color: #111827; }
+    .tile-512 { background: #34d399; color: #111827; }
+    .tile-1024 { background: #fbbf24; color: #111827; }
+    .tile-2048 { background: #f59e0b; color: #111827; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="title">2048</div>
+      <div class="score">Score: <span id="score">0</span></div>
+    </div>
+    <button id="restart">Restart</button>
+    <div id="board" aria-label="2048 board"></div>
+  </div>
+
+  <script>
+    const size = 4;
+    const boardEl = document.getElementById('board');
+    const scoreEl = document.getElementById('score');
+    const restartBtn = document.getElementById('restart');
+    let board = [];
+    let score = 0;
+
+    function emptyBoard() {
+      return Array.from({ length: size }, () => Array(size).fill(0));
+    }
+
+    function getEmptyCells() {
+      const cells = [];
+      board.forEach((row, r) => {
+        row.forEach((value, c) => {
+          if (value === 0) cells.push({ r, c });
+        });
+      });
+      return cells;
+    }
+
+    function addRandomTile() {
+      const cells = getEmptyCells();
+      if (!cells.length) return;
+      const { r, c } = cells[Math.floor(Math.random() * cells.length)];
+      board[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const cell = document.createElement('div');
+          const value = board[r][c];
+          cell.className = 'cell' + (value ? ` tile-${value}` : ' empty');
+          cell.textContent = value || '';
+          boardEl.appendChild(cell);
+        }
+      }
+      scoreEl.textContent = score;
+    }
+
+    function slideLine(line) {
+      const filtered = line.filter(v => v !== 0);
+      const merged = [];
+      for (let i = 0; i < filtered.length; i++) {
+        if (filtered[i] === filtered[i + 1]) {
+          const mergedValue = filtered[i] * 2;
+          merged.push(mergedValue);
+          score += mergedValue;
+          i++;
+        } else {
+          merged.push(filtered[i]);
+        }
+      }
+      while (merged.length < size) merged.push(0);
+      return merged;
+    }
+
+    function move(direction) {
+      const oldBoard = JSON.stringify(board);
+      const newBoard = emptyBoard();
+
+      if (direction === 'left' || direction === 'right') {
+        for (let r = 0; r < size; r++) {
+          let row = board[r].slice();
+          if (direction === 'right') row = row.reverse();
+          const nextRow = slideLine(row);
+          if (direction === 'right') newBoard[r] = nextRow.reverse();
+          else newBoard[r] = nextRow;
+        }
+      } else {
+        for (let c = 0; c < size; c++) {
+          let column = [];
+          for (let r = 0; r < size; r++) column.push(board[r][c]);
+          if (direction === 'down') column = column.reverse();
+          const nextColumn = slideLine(column);
+          const restored = direction === 'down' ? nextColumn.reverse() : nextColumn;
+          for (let r = 0; r < size; r++) newBoard[r][c] = restored[r];
+        }
+      }
+
+      board = newBoard;
+      if (JSON.stringify(board) !== oldBoard) {
+        addRandomTile();
+        renderBoard();
+      }
+
+      if (!getEmptyCells().length && !canMove()) {
+        alert('Game over!');
+      }
+    }
+
+    function canMove() {
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const value = board[r][c];
+          if (value === 0) return true;
+          if (c < size - 1 && value === board[r][c + 1]) return true;
+          if (r < size - 1 && value === board[r + 1][c]) return true;
+        }
+      }
+      return false;
+    }
+
+    function resetGame() {
+      board = emptyBoard();
+      score = 0;
+      addRandomTile();
+      addRandomTile();
+      renderBoard();
+    }
+
+    document.addEventListener('keydown', (event) => {
+      const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+      const direction = map[event.key];
+      if (direction) {
+        event.preventDefault();
+        move(direction);
+      }
+    });
+
+    restartBtn.addEventListener('click', resetGame);
+    resetGame();
+  </script>
+</body>
+</html>
