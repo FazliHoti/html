@@ -1,89 +1,114 @@
 <x-app-layout>
-    @php($title = $game->name . ' | Game Hub')
+    @php($title = $game->name . ' | PlayForge')
 
-    <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-            <div class="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900">
-                <img src="{{ $game->image_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' }}" alt="{{ $game->name }}" class="h-80 w-full object-cover" />
-                <div class="p-8">
-                    <div class="flex items-center justify-between gap-4">
-                        <div>
-                            <p class="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-300">{{ $game->category->name }}</p>
-                            <h1 class="mt-3 text-4xl font-black text-white">{{ $game->name }}</h1>
-                        </div>
-                        <form action="{{ route('games.favorite', $game) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="rounded-full border border-slate-600 px-4 py-2 text-sm font-semibold text-white hover:border-cyan-400 hover:text-cyan-300">Save favorite</button>
-                        </form>
-                    </div>
-
-                    <p class="mt-6 text-slate-300">{{ $game->description }}</p>
-
-                    <div class="mt-8 rounded-2xl border border-slate-700 bg-slate-950 p-5">
-                        <h2 class="text-xl font-bold text-white">How to play</h2>
-                        <p class="mt-3 text-slate-300">{{ $game->instructions ?? 'Use your keyboard and aim for a better score.' }}</p>
-                    </div>
-
-                    <div class="mt-8 rounded-2xl border border-slate-700 bg-slate-950 p-5">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-white">Mini game</h2>
-                            <span class="text-sm text-slate-400">{{ $averageRating }}/5 rating</span>
-                        </div>
-                        <div id="game-display" data-game-slug="{{ $game->slug }}" data-game-name="{{ $game->name }}" data-game-url="{{ $gameEmbedUrl ?? '' }}" class="mt-5 rounded-2xl border border-dashed border-slate-600 bg-slate-900 text-center text-slate-200"></div>
-                    </div>
+    <section class="play-page page-shell">
+        <div class="mb-7 flex flex-col gap-6 border-b border-[var(--line)] pb-7 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <a href="{{ route('games.index') }}" class="text-sm font-medium text-[var(--accent-strong)] transition hover:text-[var(--clay)]">← Back to the game shelf</a>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <span class="chip">{{ $game->category->name }}</span>
+                    @if($game->featured)
+                        <span class="text-xs font-medium text-[var(--clay)]">A player favorite</span>
+                    @endif
                 </div>
+                <h1 class="mt-4 font-serif text-4xl tracking-tight text-[var(--ink)] sm:text-5xl">{{ $game->name }}</h1>
+                <p class="mt-3 max-w-3xl text-base leading-7 text-[var(--ink-muted)]">{{ $game->description }}</p>
             </div>
 
-            <aside class="space-y-6">
-                <div class="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-                    <h2 class="text-xl font-bold text-white">Game stats</h2>
-                    <div class="mt-5 space-y-4 text-sm text-slate-300">
-                        <div class="flex items-center justify-between"><span>Favorites</span><strong class="text-white">{{ $favoriteCount }}</strong></div>
-                        <div class="flex items-center justify-between"><span>Players</span><strong class="text-white">{{ $game->play_count }}</strong></div>
-                        <div class="flex items-center justify-between"><span>Average rating</span><strong class="text-white">{{ $averageRating }}</strong></div>
-                    </div>
+            <form action="{{ route('games.favorite', $game) }}" method="POST">
+                @csrf
+                <button type="submit" class="btn-secondary">Save to my games</button>
+            </form>
+        </div>
 
-                    <form action="{{ route('games.score', $game->slug) }}" method="POST" class="mt-6 space-y-3">
-                        @csrf
-                        <label class="block text-sm text-slate-300">Submit score</label>
-                        <input type="number" name="score" min="0" value="0" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white focus:border-cyan-400 focus:outline-none" />
-                        <button type="submit" class="w-full rounded-full bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400">Save score</button>
-                    </form>
+        <div class="play-dock">
+            <div class="play-dock-header">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[#b8c9bf]">Ready when you are</p>
+                    <p class="mt-1 text-sm text-[#e1e5df]">{{ $game->instructions ?? 'Use your keyboard and see how far you get.' }}</p>
                 </div>
+                <span class="text-xs text-[#cbd4cd]">{{ $averageRating }}/5 from players</span>
+            </div>
 
-                <div class="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-                    <h2 class="text-xl font-bold text-white">Top players</h2>
-                    <div class="mt-5 space-y-3">
-                        @forelse($leaderboard as $entry)
-                            <div class="flex items-center justify-between rounded-xl bg-slate-950 px-3 py-2">
-                                <div>
-                                    <p class="font-semibold text-white">{{ $entry->user->name ?? 'Player' }}</p>
-                                    <p class="text-xs text-slate-400">{{ $entry->game->name }}</p>
-                                </div>
-                                <span class="font-bold text-cyan-300">{{ $entry->score }}</span>
+            <div id="game-display" data-game-slug="{{ $game->slug }}" data-game-name="{{ $game->name }}" data-game-url="{{ $gameEmbedUrl ?? '' }}" class="play-screen"></div>
+        </div>
+
+        <div class="score-strip">
+            <div class="px-2">
+                <p class="text-xs uppercase tracking-[0.12em] text-[var(--ink-muted)]">Plays</p>
+                <p class="mt-1 font-serif text-2xl text-[var(--ink)]">{{ $game->play_count }}</p>
+            </div>
+            <div class="px-2">
+                <p class="text-xs uppercase tracking-[0.12em] text-[var(--ink-muted)]">Rating</p>
+                <p class="mt-1 font-serif text-2xl text-[var(--ink)]">{{ $averageRating }}<span class="text-sm text-[var(--ink-muted)]"> / 5</span></p>
+            </div>
+            <div class="px-2">
+                <p class="text-xs uppercase tracking-[0.12em] text-[var(--ink-muted)]">Saved by</p>
+                <p class="mt-1 font-serif text-2xl text-[var(--ink)]">{{ $favoriteCount }}</p>
+            </div>
+            <form action="{{ route('games.score', $game->slug) }}" method="POST" class="score-form">
+                @csrf
+                <label for="player-score" class="sr-only">Your score</label>
+                <input id="player-score" type="number" name="score" min="0" value="{{ old('score', 0) }}" inputmode="numeric" class="field" />
+                @error('score')<p class="form-error sm:basis-full">{{ $message }}</p>@enderror
+                <button type="submit" class="btn-primary whitespace-nowrap">Add your score</button>
+            </form>
+        </div>
+        <p id="score-feedback" class="score-feedback" role="status" aria-live="polite" hidden></p>
+
+        <div class="mt-10 grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <section class="info-panel">
+                <div class="flex items-end justify-between gap-4 border-b border-[var(--line)] pb-4">
+                    <div>
+                        <p class="eyebrow">A little friendly rivalry</p>
+                        <h2 class="mt-2 font-serif text-2xl text-[var(--ink)]">Best runs</h2>
+                    </div>
+                    <a href="{{ route('leaderboard') }}" class="text-xs font-medium text-[var(--accent-strong)] underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--clay)]">All scores</a>
+                </div>
+                <div class="mt-2">
+                    @forelse($leaderboard as $index => $entry)
+                        <div class="list-row flex items-center justify-between gap-4 px-3 py-3">
+                            <div>
+                                <p class="text-xs text-[var(--ink-muted)]">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }} · {{ $entry->user->name ?? 'Player' }}</p>
                             </div>
-                        @empty
-                            <p class="text-sm text-slate-400">No scores yet. Be the first to play.</p>
-                        @endforelse
+                            <span class="font-semibold tabular-nums text-[var(--accent-strong)]">{{ $entry->score }}</span>
+                        </div>
+                    @empty
+                        <p class="py-5 text-sm leading-6 text-[var(--ink-muted)]">No scores just yet. Play a round and leave the first mark.</p>
+                    @endforelse
+                </div>
+            </section>
+
+            <section class="info-panel">
+                <div class="grid gap-6 {{ $game->image_url ? 'md:grid-cols-[0.8fr_1.2fr]' : '' }}">
+                    @if($game->image_url)
+                        <div class="min-h-48 overflow-hidden rounded-sm bg-[var(--paper-warm)]">
+                            <img src="{{ $game->image_url }}" alt="{{ $game->name }} game artwork" class="game-art-image h-full min-h-48 w-full object-cover" data-game-art="{{ $game->slug }}" data-art-label="{{ $game->name }} game artwork" data-fallback-mark="{{ mb_substr($game->name, 0, 1) }}" />
+                        </div>
+                    @endif
+                    <div>
+                        <p class="eyebrow">After the round</p>
+                        <h2 class="mt-2 font-serif text-2xl text-[var(--ink)]">Leave a note</h2>
+                        <p class="mt-2 text-sm leading-6 text-[var(--ink-muted)]">A quick rating helps the next player decide what to try.</p>
+                        <form action="{{ route('games.review', $game) }}" method="POST" class="mt-5 space-y-3">
+                            @csrf
+                            <label for="review-rating" class="form-label">Your rating</label>
+                            <select id="review-rating" name="rating" class="field">
+                                <option value="5">5 - Excellent</option>
+                                <option value="4">4 - Good</option>
+                                <option value="3">3 - Okay</option>
+                                <option value="2">2 - Weak</option>
+                                <option value="1">1 - Bad</option>
+                            </select>
+                            @error('rating')<p class="form-error">{{ $message }}</p>@enderror
+                            <label for="review-comment" class="form-label">Anything to add? <span class="font-normal text-[var(--ink-muted)]">(optional)</span></label>
+                            <textarea id="review-comment" name="comment" rows="3" placeholder="What stood out?" class="field"></textarea>
+                            @error('comment')<p class="form-error">{{ $message }}</p>@enderror
+                            <button type="submit" class="btn-secondary">Share your note</button>
+                        </form>
                     </div>
                 </div>
-
-                <div class="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-                    <h2 class="text-xl font-bold text-white">Write a review</h2>
-                    <form action="{{ route('games.review', $game) }}" method="POST" class="mt-5 space-y-3">
-                        @csrf
-                        <select name="rating" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white focus:border-cyan-400 focus:outline-none">
-                            <option value="5">5 - Excellent</option>
-                            <option value="4">4 - Good</option>
-                            <option value="3">3 - Okay</option>
-                            <option value="2">2 - Weak</option>
-                            <option value="1">1 - Bad</option>
-                        </select>
-                        <textarea name="comment" rows="4" placeholder="Tell players what you thought..." class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"></textarea>
-                        <button type="submit" class="w-full rounded-full bg-white px-4 py-3 font-semibold text-slate-950 hover:bg-slate-200">Submit review</button>
-                    </form>
-                </div>
-            </aside>
+            </section>
         </div>
     </section>
 </x-app-layout>

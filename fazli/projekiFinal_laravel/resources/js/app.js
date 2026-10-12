@@ -1,12 +1,19 @@
 const renderPlaceholder = (root) => {
-    root.innerHTML = `
-        <div class="flex h-64 items-center justify-center p-6">
-            <div>
-                <p class="text-lg font-semibold text-white">${root.dataset.gameName || 'Game'}</p>
-                <p class="mt-2 text-sm text-slate-400">This browser game is loading.</p>
-            </div>
-        </div>
-    `;
+    const message = document.createElement('div');
+    message.className = 'game-empty';
+
+    const content = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'font-serif text-3xl text-white';
+    title.textContent = root.dataset.gameName || 'Game';
+
+    const description = document.createElement('p');
+    description.className = 'mx-auto mt-3 max-w-md text-sm leading-6 text-zinc-300';
+    description.textContent = 'This game is on the shelf, but it does not have a playable version attached yet.';
+
+    content.append(title, description);
+    message.append(content);
+    root.replaceChildren(message);
 };
 
 const renderExternalGame = (root) => {
@@ -18,34 +25,33 @@ const renderExternalGame = (root) => {
         return;
     }
 
-    root.innerHTML = `
-        <style>
-            .game-shell:fullscreen { display: flex; flex-direction: column; width: 100vw; height: 100vh; border: 0; border-radius: 0; }
-            .game-shell:fullscreen iframe { flex: 1; width: 100%; height: auto; min-height: 0; }
-        </style>
-        <div class="game-shell overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
-            <div class="flex items-center justify-between gap-3 border-b border-slate-700 bg-slate-900 px-4 py-3">
-                <span class="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Self-hosted game</span>
-                <button type="button" class="fullscreen-game-btn rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 transition hover:border-cyan-400 hover:bg-cyan-500/20">
-                    Fullscreen
-                </button>
-            </div>
-            <iframe
-                src="${gameUrl}"
-                title="${gameName}"
-                class="h-[30rem] w-full border-0 bg-slate-950"
-                loading="lazy"
-                allow="fullscreen"
-                allowfullscreen
-                scrolling="no"
-                tabindex="0"
-            ></iframe>
-        </div>
-    `;
+    const gameShell = document.createElement('div');
+    gameShell.className = 'game-shell';
 
-    const gameShell = root.querySelector('.game-shell');
-    const fullscreenButton = root.querySelector('.fullscreen-game-btn');
-    const iframe = root.querySelector('iframe');
+    const toolbar = document.createElement('div');
+    toolbar.className = 'flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3';
+
+    const gameLabel = document.createElement('span');
+    gameLabel.className = 'text-xs font-semibold uppercase tracking-[0.14em] text-[#cbd4cd]';
+    gameLabel.textContent = gameName;
+
+    const fullscreenButton = document.createElement('button');
+    fullscreenButton.type = 'button';
+    fullscreenButton.className = 'rounded-sm border border-white/25 px-3 py-2 text-xs font-medium text-white transition-colors hover:border-white/60 hover:bg-white/5';
+    fullscreenButton.textContent = 'Fullscreen';
+    fullscreenButton.setAttribute('aria-label', `Play ${gameName} in fullscreen`);
+
+    const iframe = document.createElement('iframe');
+    iframe.src = gameUrl;
+    iframe.title = gameName;
+    iframe.loading = 'lazy';
+    iframe.allow = 'fullscreen';
+    iframe.scrolling = 'no';
+    iframe.tabIndex = 0;
+
+    toolbar.append(gameLabel, fullscreenButton);
+    gameShell.append(toolbar, iframe);
+    root.replaceChildren(gameShell);
 
     if (fullscreenButton && gameShell) {
         fullscreenButton.addEventListener('click', async () => {
@@ -63,13 +69,15 @@ const renderExternalGame = (root) => {
                 if (iframe && iframe.requestFullscreen) {
                     await iframe.requestFullscreen();
                 }
-            } catch (error) {
-                console.warn('Fullscreen request was blocked:', error);
+            } catch {
+                fullscreenButton.textContent = 'Fullscreen unavailable';
             }
         });
 
         document.addEventListener('fullscreenchange', () => {
-            fullscreenButton.textContent = document.fullscreenElement === gameShell ? 'Exit Fullscreen' : 'Fullscreen';
+            const isFullscreen = document.fullscreenElement === gameShell;
+            fullscreenButton.textContent = isFullscreen ? 'Exit fullscreen' : 'Fullscreen';
+            fullscreenButton.setAttribute('aria-label', isFullscreen ? `Exit fullscreen for ${gameName}` : `Play ${gameName} in fullscreen`);
         });
     }
 };
@@ -79,4 +87,46 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!root) return;
 
     renderExternalGame(root);
+
+    const iframe = root.querySelector('iframe');
+    const scoreField = document.getElementById('player-score');
+    const scoreFeedback = document.getElementById('score-feedback');
+
+    window.addEventListener('message', (event) => {
+        const message = event.data;
+
+        if (
+            event.origin !== window.location.origin
+            || event.source !== iframe?.contentWindow
+            || message?.type !== 'playforge:score'
+            || message.gameSlug !== root.dataset.gameSlug
+            || !Number.isSafeInteger(message.score)
+            || message.score < 0
+            || !scoreField
+        ) {
+            return;
+        }
+
+        scoreField.value = String(message.score);
+        scoreField.dispatchEvent(new Event('input', { bubbles: true }));
+
+        if (scoreFeedback) {
+            scoreFeedback.textContent = `Your ${message.score}-point run is ready to save below.`;
+            scoreFeedback.hidden = false;
+        }
+    });
 });
+
+document.addEventListener('error', (event) => {
+    const image = event.target;
+
+    if (!(image instanceof HTMLImageElement) || !image.classList.contains('game-art-image')) return;
+
+    const fallback = document.createElement('div');
+    fallback.className = `${image.className.replace('game-art-image', '').replace('object-cover', '')} game-art-fallback`;
+    fallback.dataset.gameArt = image.dataset.gameArt || '';
+    fallback.setAttribute('role', 'img');
+    fallback.setAttribute('aria-label', image.dataset.artLabel || image.alt || 'Game artwork unavailable');
+    fallback.textContent = image.dataset.fallbackMark || image.alt.trim().charAt(0) || '✦';
+    image.replaceWith(fallback);
+}, true);

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eef3e8">
+    <title>Flappy Finch — PlayForge</title>
+    <style>
+        :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #27372f; background: #eef3e8; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #eef3e8; }
+        .game { width: min(100%, 480px); }
+        .topline, .tools, .readout { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .topline { margin-bottom: 5px; }
+        h1 { margin: 0; font: 500 clamp(1.5rem, 6vw, 2rem)/1.1 Georgia, serif; letter-spacing: -.03em; }
+        .readout { justify-content: flex-start; gap: 22px; margin: 12px 0; color: #66756b; font-size: .88rem; }
+        .readout strong { color: #315848; font-variant-numeric: tabular-nums; }
+        .stage { position: relative; overflow: hidden; border: 1px solid #cbd8c9; border-radius: 8px; background: #dcebd7; box-shadow: 0 12px 30px #314b3512; }
+        canvas { display: block; width: 100%; height: auto; touch-action: manipulation; }
+        .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: #263a2c99; color: white; text-align: center; }
+        .overlay[hidden] { display: none; }
+        .message { max-width: 290px; }
+        .message h2 { margin: 0; font: 500 2rem/1.1 Georgia, serif; }
+        .message p { margin: 10px 0 18px; color: #edf2e9; line-height: 1.55; font-size: .92rem; }
+        button { min-height: 42px; padding: 9px 14px; border: 1px solid #c5d4c4; border-radius: 5px; background: #fbfaf5; color: #294b3c; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+        button:hover { background: white; }
+        button:focus-visible { outline: 3px solid #ae654b; outline-offset: 3px; }
+        .tools button { min-height: 36px; padding: 7px 10px; }
+        .hint { margin: 11px 0 0; color: #66756b; text-align: center; font-size: .8rem; }
+        @media (max-width: 420px) { body { padding: 10px; } .readout { margin: 9px 0; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+    </style>
+</head>
+<body>
+    <main class="game" aria-label="Flappy Finch game">
+        <div class="topline"><h1>Flappy Finch</h1><div class="tools"><button id="sound" type="button" aria-pressed="false">Sound on</button><button id="restart" type="button">Restart</button></div></div>
+        <div class="readout" aria-live="polite"><span>Flight <strong id="score">0</strong></span><span>Best <strong id="best">0</strong></span></div>
+        <div class="stage">
+            <canvas id="flight" width="480" height="560" role="img" aria-label="A little bird flying between garden gates"></canvas>
+            <div id="overlay" class="overlay">
+                <div class="message"><h2 id="message-title">Ready to fly?</h2><p id="message-copy">Tap, click, or press Space to flap. Slip through the gates without touching them.</p><button id="play" type="button">Start flying</button></div>
+            </div>
+        </div>
+        <p class="hint">Tap, click, or press Space / ↑ to flap.</p>
+    </main>
+    <script>
+        (() => {
+            const canvas = document.getElementById('flight');
+            const context = canvas.getContext('2d');
+            const scoreElement = document.getElementById('score');
+            const bestElement = document.getElementById('best');
+            const overlay = document.getElementById('overlay');
+            const title = document.getElementById('message-title');
+            const copy = document.getElementById('message-copy');
+            const playButton = document.getElementById('play');
+            const soundButton = document.getElementById('sound');
+            const width = canvas.width;
+            const height = canvas.height;
+            const ground = 64;
+            const bird = { x: 115, y: 260, velocity: 0, radius: 15 };
+            const pipeWidth = 66;
+            const gap = 154;
+            let pipes = [];
+            let score = 0;
+            let best = Number(localStorage.getItem('playforge-flappy-best') || 0);
+            let state = 'ready';
+            let lastTime = 0;
+            let muted = false;
+            let audio;
+
+            bestElement.textContent = best;
+
+            function tone(frequency, duration = 0.08, type = 'sine') {
+                if (muted) return;
+                try {
+                    audio ??= new AudioContext();
+                    if (audio.state === 'suspended') audio.resume();
+                    const oscillator = audio.createOscillator();
+                    const gain = audio.createGain();
+                    oscillator.type = type;
+                    oscillator.frequency.value = frequency;
+                    gain.gain.setValueAtTime(0.055, audio.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+                    oscillator.connect(gain).connect(audio.destination);
+                    oscillator.start();
+                    oscillator.stop(audio.currentTime + duration);
+                } catch { /* Audio is optional; the game remains playable when unavailable. */ }
+            }
+
+            function makePipe(x) {
+                const center = 120 + Math.random() * 260;
+                return { x, top: center - gap / 2, bottom: center + gap / 2, passed: false };
+            }
+
+            function paint() {
+                const sky = context.createLinearGradient(0, 0, 0, height);
+                sky.addColorStop(0, '#dcebd7');
+                sky.addColorStop(1, '#b9d0b7');
+                context.fillStyle = sky;
+                context.fillRect(0, 0, width, height);
+
+                context.fillStyle = '#eff2db';
+                context.beginPath();
+                context.arc(365, 112, 37, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#c7dac0';
+                context.beginPath();
+                context.ellipse(60, 420, 170, 84, 0, Math.PI, Math.PI * 2);
+                context.ellipse(395, 430, 190, 98, 0, Math.PI, Math.PI * 2);
+                context.fill();
+
+                pipes.forEach((pipe) => {
+                    context.fillStyle = '#557961';
+                    context.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                    context.fillRect(pipe.x, pipe.bottom, pipeWidth, height - ground - pipe.bottom);
+                    context.fillStyle = '#75977b';
+                    context.fillRect(pipe.x - 5, pipe.top - 14, pipeWidth + 10, 14);
+                    context.fillRect(pipe.x - 5, pipe.bottom, pipeWidth + 10, 14);
+                    context.fillStyle = '#86a88a';
+                    context.fillRect(pipe.x + 8, 0, 7, pipe.top - 14);
+                    context.fillRect(pipe.x + 8, pipe.bottom + 14, 7, height - ground - pipe.bottom - 14);
+                });
+
+                context.fillStyle = '#7d9c69';
+                context.fillRect(0, height - ground, width, ground);
+                context.fillStyle = '#9bb47d';
+                context.fillRect(0, height - ground, width, 9);
+                context.fillStyle = '#b8c98c';
+                for (let x = 0; x < width; x += 26) context.fillRect(x, height - 28 + (x % 3) * 4, 12, 3);
+
+                context.save();
+                context.translate(bird.x, bird.y);
+                context.rotate(Math.max(-0.3, Math.min(0.55, bird.velocity * 0.055)));
+                context.fillStyle = '#d89550';
+                context.beginPath();
+                context.ellipse(0, 0, 17, 13, 0, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#f0c579';
+                context.beginPath();
+                context.ellipse(-4, 4, 9, 6, -0.25, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#d89550';
+                context.beginPath();
+                context.arc(10, -9, 9, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#f4efe0';
+                context.beginPath();
+                context.arc(13, -11, 3.7, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#27372f';
+                context.beginPath();
+                context.arc(14, -11, 1.7, 0, Math.PI * 2);
+                context.fill();
+                context.fillStyle = '#b85f42';
+                context.beginPath();
+                context.moveTo(18, -6);
+                context.lineTo(29, -3);
+                context.lineTo(18, 0);
+                context.closePath();
+                context.fill();
+                context.restore();
+            }
+
+            function setOverlay(kind) {
+                overlay.hidden = false;
+                if (kind === 'over') {
+                    title.textContent = 'A lovely little flight.';
+                    copy.textContent = `You made it past ${score} ${score === 1 ? 'gate' : 'gates'}. Fancy another try?`;
+                    playButton.textContent = 'Fly again';
+                } else {
+                    title.textContent = 'Ready to fly?';
+                    copy.textContent = 'Tap, click, or press Space to flap. Slip through the gates without touching them.';
+                    playButton.textContent = 'Start flying';
+                }
+            }
+
+            function reset() {
+                state = 'ready';
+                score = 0;
+                bird.y = 260;
+                bird.velocity = 0;
+                pipes = [makePipe(360), makePipe(590), makePipe(820)];
+                scoreElement.textContent = '0';
+                setOverlay('ready');
+                paint();
+            }
+
+            function start() {
+                if (state === 'running') {
+                    bird.velocity = -6.2;
+                    tone(620);
+                    return;
+                }
+                reset();
+                state = 'running';
+                overlay.hidden = true;
+                bird.velocity = -6.2;
+                lastTime = 0;
+                tone(620);
+                requestAnimationFrame(frame);
+            }
+
+            function finish() {
+                if (state !== 'running') return;
+                state = 'over';
+                tone(180, 0.22, 'triangle');
+                if (score > best) {
+                    best = score;
+                    localStorage.setItem('playforge-flappy-best', String(best));
+                    bestElement.textContent = String(best);
+                }
+                setOverlay('over');
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'playforge:score', gameSlug: 'flappy-finch', score }, location.origin);
+                }
+            }
+
+            function update(delta) {
+                const scale = delta / 16.67;
+                bird.velocity += 0.34 * scale;
+                bird.y += bird.velocity * scale;
+                pipes.forEach((pipe) => {
+                    pipe.x -= 2.7 * scale;
+                    if (!pipe.passed && pipe.x + pipeWidth < bird.x) {
+                        pipe.passed = true;
+                        score += 1;
+                        scoreElement.textContent = String(score);
+                        tone(840, 0.09);
+                    }
+                });
+                pipes = pipes.filter((pipe) => pipe.x + pipeWidth > -12);
+                if (pipes.length < 4) pipes.push(makePipe((pipes[pipes.length - 1]?.x ?? width) + 230));
+
+                const hitsPipe = pipes.some((pipe) => bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + pipeWidth && (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.bottom));
+                if (bird.y - bird.radius < 0 || bird.y + bird.radius > height - ground || hitsPipe) finish();
+            }
+
+            function frame(now) {
+                if (state !== 'running') return;
+                const delta = lastTime ? Math.min(now - lastTime, 34) : 16.67;
+                lastTime = now;
+                update(delta);
+                paint();
+                if (state === 'running') requestAnimationFrame(frame);
+            }
+
+            canvas.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                start();
+            });
+            playButton.addEventListener('click', start);
+            document.getElementById('restart').addEventListener('click', reset);
+            soundButton.addEventListener('click', () => {
+                muted = !muted;
+                soundButton.textContent = muted ? 'Sound off' : 'Sound on';
+                soundButton.setAttribute('aria-pressed', String(muted));
+            });
+            document.addEventListener('keydown', (event) => {
+                if ((event.code === 'Space' || event.code === 'ArrowUp') && !(event.target instanceof HTMLButtonElement)) {
+                    event.preventDefault();
+                    start();
+                }
+            });
+            reset();
+        })();
+    </script>
+</body>
+</html>

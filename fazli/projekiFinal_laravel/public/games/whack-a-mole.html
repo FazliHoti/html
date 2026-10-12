@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eef3e8">
+    <title>Whack-a-Mole — PlayForge</title>
+    <style>
+        :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #27372f; background: #eef3e8; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #eef3e8; }
+        .game { width: min(100%, 520px); }
+        .head, .stats, .actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        h1 { margin: 0; font: 500 clamp(1.45rem, 6vw, 2rem)/1.1 Georgia, serif; letter-spacing: -.03em; }
+        .sub { margin: 7px 0 0; color: #66756b; font-size: .85rem; line-height: 1.45; }
+        .stats { justify-content: flex-start; gap: 24px; margin: 17px 0 12px; color: #66756b; font-size: .86rem; }
+        .stats strong { color: #315848; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+        .plot { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 3vw, 18px); padding: clamp(14px, 4vw, 24px); border: 1px solid #cbd8c9; border-radius: 8px; background: linear-gradient(150deg, #d5e4cc, #b7cda9); box-shadow: 0 12px 30px #314b3512; }
+        .hole { position: relative; display: grid; place-items: center; min-width: 0; aspect-ratio: 1.05; padding: 0; overflow: hidden; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; }
+        .hole:focus-visible { outline: 3px solid #ae654b; outline-offset: 2px; border-radius: 50%; }
+        .earth { position: absolute; bottom: 14%; width: 84%; height: 39%; border: 2px solid #738b63; border-radius: 50%; background: #526e4a; box-shadow: inset 0 7px 9px #273c2959; }
+        .mole { position: absolute; z-index: 1; bottom: 19%; display: grid; place-items: center; width: clamp(48px, 14vw, 70px); height: clamp(48px, 14vw, 70px); border: 3px solid #765740; border-radius: 52% 52% 46% 46%; background: linear-gradient(145deg, #c39a78, #987153 72%); box-shadow: inset 0 7px 0 #d1ac8c, 0 4px 2px #263a2b30; transform: translateY(75%); opacity: 0; transition: transform 130ms ease-out, opacity 130ms ease-out; }
+        .mole::after { position: absolute; top: 58%; left: 50%; width: 12px; height: 9px; border-radius: 50%; background: #d88979; content: ''; transform: translateX(-50%); }
+        .eyes { position: absolute; top: 39%; left: 24%; display: flex; gap: 17px; }
+        .eyes i { width: 5px; height: 7px; border-radius: 50%; background: #342b25; }
+        .hole.is-active .mole { transform: translateY(0); opacity: 1; }
+        .actions { justify-content: center; margin-top: 14px; }
+        button.action { min-height: 42px; padding: 9px 16px; border: 1px solid #315848; border-radius: 5px; background: #365b4a; color: #fffdf7; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+        button.action:hover { background: #294b3c; }
+        button.quiet { border-color: #c5d4c4; background: #fbfaf5; color: #294b3c; }
+        button:focus-visible { outline: 3px solid #ae654b; outline-offset: 3px; }
+        .overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 20px; border-radius: 7px; background: #263a2cbd; color: white; text-align: center; }
+        .overlay[hidden] { display: none; }
+        .overlay h2 { margin: 0; font: 500 1.8rem/1.15 Georgia, serif; }
+        .overlay p { max-width: 300px; margin: 9px auto 16px; color: #edf2e9; font-size: .9rem; line-height: 1.5; }
+        .tools button { min-height: 36px; padding: 7px 10px; font-size: .8rem; }
+        .note { margin: 11px 0 0; color: #66756b; text-align: center; font-size: .78rem; }
+        @media (max-width: 380px) { body { padding: 12px; } .head { align-items: flex-start; flex-direction: column; } .plot { gap: 7px; padding: 12px; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+    </style>
+</head>
+<body>
+    <main class="game" aria-label="Whack-a-Mole game">
+        <div class="head"><div><h1>Whack-a-Mole</h1><p class="sub">A quick visit to the garden patch.</p></div><div class="tools"><button class="action quiet" id="sound" type="button" aria-pressed="false">Sound on</button><button class="action quiet" id="restart" type="button">Restart</button></div></div>
+        <div class="stats"><span>Caught <strong id="score" aria-live="polite">0</strong></span><span>Time <strong id="time" role="timer">30</strong>s</span></div>
+        <div class="plot" id="plot" aria-label="Mole holes">
+            <div id="overlay" class="overlay"><div><h2 id="message-title">Ready, gardener?</h2><p id="message-copy">Catch the moles as they pop up. You have half a minute to make your mark.</p><button class="action" id="play" type="button">Start the round</button></div></div>
+        </div>
+        <p class="note">Tap or click a mole when you spot one. A little sound plays with each catch.</p>
+    </main>
+    <script>
+        (() => {
+            const plot = document.getElementById('plot');
+            const overlay = document.getElementById('overlay');
+            const scoreElement = document.getElementById('score');
+            const timeElement = document.getElementById('time');
+            const playButton = document.getElementById('play');
+            const soundButton = document.getElementById('sound');
+            let holes = [];
+            let activeHole = -1;
+            let score = 0;
+            let seconds = 30;
+            let state = 'ready';
+            let moleTimer;
+            let clockTimer;
+            let muted = false;
+            let audio;
+
+            function tone(frequency = 560) {
+                if (muted) return;
+                try {
+                    audio ??= new AudioContext();
+                    if (audio.state === 'suspended') audio.resume();
+                    const oscillator = audio.createOscillator();
+                    const gain = audio.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = frequency;
+                    gain.gain.setValueAtTime(0.045, audio.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.09);
+                    oscillator.connect(gain).connect(audio.destination);
+                    oscillator.start();
+                    oscillator.stop(audio.currentTime + 0.09);
+                } catch { /* Sound is optional. */ }
+            }
+
+            function makeHoles() {
+                for (let index = 0; index < 9; index += 1) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'hole';
+                    button.setAttribute('aria-label', 'Empty hole');
+                    button.innerHTML = '<span class="earth" aria-hidden="true"></span><span class="mole" aria-hidden="true"><span class="eyes"><i></i><i></i></span></span>';
+                    button.addEventListener('click', () => catchMole(index));
+                    plot.append(button);
+                    holes.push(button);
+                }
+            }
+
+            function chooseMole() {
+                if (state !== 'running') return;
+                holes[activeHole]?.classList.remove('is-active');
+                holes[activeHole]?.setAttribute('aria-label', 'Empty hole');
+                let next = Math.floor(Math.random() * holes.length);
+                if (holes.length > 1 && next === activeHole) next = (next + 1 + Math.floor(Math.random() * (holes.length - 1))) % holes.length;
+                activeHole = next;
+                holes[activeHole].classList.add('is-active');
+                holes[activeHole].setAttribute('aria-label', 'Mole! Catch it');
+            }
+
+            function catchMole(index) {
+                if (state !== 'running' || index !== activeHole) return;
+                score += 1;
+                scoreElement.textContent = String(score);
+                tone(520 + Math.min(score, 12) * 28);
+                chooseMole();
+            }
+
+            function finish() {
+                if (state !== 'running') return;
+                state = 'over';
+                clearInterval(moleTimer);
+                clearInterval(clockTimer);
+                holes[activeHole]?.classList.remove('is-active');
+                holes[activeHole]?.setAttribute('aria-label', 'Empty hole');
+                document.getElementById('message-title').textContent = score ? 'Well caught!' : 'The moles win this one.';
+                document.getElementById('message-copy').textContent = `You caught ${score} ${score === 1 ? 'mole' : 'moles'} in 30 seconds. Ready for another round?`;
+                playButton.textContent = 'Play again';
+                overlay.hidden = false;
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'playforge:score', gameSlug: 'whack-a-mole', score }, location.origin);
+                }
+            }
+
+            function start() {
+                clearInterval(moleTimer);
+                clearInterval(clockTimer);
+                score = 0;
+                seconds = 30;
+                scoreElement.textContent = '0';
+                timeElement.textContent = '30';
+                state = 'running';
+                overlay.hidden = true;
+                activeHole = -1;
+                chooseMole();
+                moleTimer = setInterval(chooseMole, 780);
+                clockTimer = setInterval(() => {
+                    seconds -= 1;
+                    timeElement.textContent = String(seconds);
+                    if (seconds <= 0) finish();
+                }, 1000);
+            }
+
+            makeHoles();
+            playButton.addEventListener('click', start);
+            document.getElementById('restart').addEventListener('click', start);
+            soundButton.addEventListener('click', () => {
+                muted = !muted;
+                soundButton.textContent = muted ? 'Sound off' : 'Sound on';
+                soundButton.setAttribute('aria-pressed', String(muted));
+            });
+        })();
+    </script>
+</body>
+</html>

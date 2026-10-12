@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Match</title>
+  <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      margin: 0;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #7f1d1d, #020617 64%);
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    .panel {
+      width: min(560px, calc(100vw - 24px));
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 18px;
+      background: rgba(2,6,23,0.88);
+      padding: 14px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    }
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .card {
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #111827, #020617);
+      color: transparent;
+      font-size: clamp(24px, 7vw, 42px);
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+    }
+    .card.open, .card.done {
+      color: white;
+      background: linear-gradient(135deg, #0891b2, #db2777);
+      box-shadow: 0 12px 28px rgba(34,211,238,0.18);
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      background: #22d3ee;
+      color: #020617;
+      padding: 9px 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="hud">
+      <span>Memory Match</span>
+      <span>Moves: <span id="moves">0</span></span>
+      <button id="restart">Restart</button>
+    </div>
+    <div class="grid" id="board"></div>
+  </div>
+
+  <script>
+    const icons = ['★', '◆', '●', '▲', '✦', '■', '☽', '✚'];
+    const board = document.getElementById('board');
+    const movesEl = document.getElementById('moves');
+    const restart = document.getElementById('restart');
+    let openCards = [];
+    let locked = false;
+    let moves = 0;
+
+    function shuffle(items) {
+      return items.sort(() => Math.random() - 0.5);
+    }
+
+    function reset() {
+      board.innerHTML = '';
+      openCards = [];
+      locked = false;
+      moves = 0;
+      movesEl.textContent = moves;
+      shuffle([...icons, ...icons]).forEach((icon) => {
+        const card = document.createElement('button');
+        card.className = 'card';
+        card.type = 'button';
+        card.textContent = icon;
+        card.dataset.icon = icon;
+        card.addEventListener('click', () => flip(card));
+        board.appendChild(card);
+      });
+    }
+
+    function flip(card) {
+      if (locked || card.classList.contains('open') || card.classList.contains('done')) return;
+      card.classList.add('open');
+      openCards.push(card);
+
+      if (openCards.length !== 2) return;
+      moves += 1;
+      movesEl.textContent = moves;
+      locked = true;
+      const [first, second] = openCards;
+      if (first.dataset.icon === second.dataset.icon) {
+        first.classList.add('done');
+        second.classList.add('done');
+        openCards = [];
+        locked = false;
+        return;
+      }
+
+      setTimeout(() => {
+        first.classList.remove('open');
+        second.classList.remove('open');
+        openCards = [];
+        locked = false;
+      }, 700);
+    }
+
+    restart.addEventListener('click', reset);
+    reset();
+  </script>
+</body>
+</html>

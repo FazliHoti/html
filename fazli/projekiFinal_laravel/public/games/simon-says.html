@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eef3e8">
+    <title>Simon Says — PlayForge</title>
+    <style>
+        :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #27372f; background: #eef3e8; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #eef3e8; }
+        .game { width: min(100%, 430px); }
+        .head, .tools, .summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        h1 { margin: 0; font: 500 clamp(1.5rem, 6vw, 2rem)/1.1 Georgia, serif; letter-spacing: -.03em; }
+        .intro { margin: 7px 0 0; color: #66756b; font-size: .85rem; line-height: 1.45; }
+        .summary { justify-content: flex-start; gap: 24px; margin: 16px 0 12px; color: #66756b; font-size: .86rem; }
+        .summary strong { color: #315848; font-variant-numeric: tabular-nums; }
+        .board-wrap { position: relative; padding: clamp(15px, 5vw, 24px); border: 1px solid #cbd8c9; border-radius: 8px; background: #fbfaf5; box-shadow: 0 12px 30px #314b3512; }
+        .board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(10px, 3vw, 16px); }
+        .pad { min-width: 0; aspect-ratio: 1.12; border: 2px solid #ffffff88; border-radius: 7px; opacity: .78; cursor: pointer; transition: opacity 120ms ease, filter 120ms ease, transform 120ms ease; touch-action: manipulation; }
+        .pad:hover { opacity: .92; }
+        .pad:active { transform: scale(.98); }
+        .pad:focus-visible { outline: 3px solid #293a31; outline-offset: 3px; }
+        .pad[data-color="0"] { background: #73927c; }
+        .pad[data-color="1"] { background: #bd765a; }
+        .pad[data-color="2"] { background: #d0ae61; }
+        .pad[data-color="3"] { background: #6c8790; }
+        .pad.is-lit { opacity: 1; filter: brightness(1.32) saturate(1.1); transform: scale(.98); }
+        .overlay { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 22px; border-radius: 7px; background: #263a2ccc; color: white; text-align: center; }
+        .overlay[hidden] { display: none; }
+        .overlay h2 { margin: 0; font: 500 1.9rem/1.1 Georgia, serif; }
+        .overlay p { max-width: 290px; margin: 10px auto 18px; color: #edf2e9; font-size: .9rem; line-height: 1.55; }
+        button.action { min-height: 42px; padding: 9px 15px; border: 1px solid #315848; border-radius: 5px; background: #365b4a; color: #fffdf7; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+        button.quiet { min-height: 36px; padding: 7px 10px; border: 1px solid #c5d4c4; border-radius: 5px; background: transparent; color: #294b3c; font: inherit; font-size: .8rem; cursor: pointer; }
+        button.action:hover { background: #294b3c; }
+        button:focus-visible { outline: 3px solid #ae654b; outline-offset: 3px; }
+        .status { min-height: 1.5em; margin: 13px 0 0; color: #53685a; text-align: center; font-size: .88rem; }
+        .keys { margin: 8px 0 0; color: #66756b; text-align: center; font-size: .78rem; }
+        @media (max-width: 360px) { body { padding: 10px; } .head { align-items: flex-start; flex-direction: column; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+    </style>
+</head>
+<body>
+    <main class="game" aria-label="Simon Says memory game">
+        <div class="head"><div><h1>Simon Says</h1><p class="intro">A little color-and-sound memory test.</p></div><div class="tools"><button id="sound" class="quiet" type="button" aria-pressed="false">Sound on</button><button id="restart" class="quiet" type="button">Restart</button></div></div>
+        <div class="summary"><span>Score <strong id="score" aria-live="polite">0</strong></span><span>Best <strong id="best">0</strong></span></div>
+        <div class="board-wrap">
+            <div class="board" id="board" aria-label="Simon Says pads">
+                <button class="pad" type="button" data-color="0" aria-label="Sage pad, key 1"></button>
+                <button class="pad" type="button" data-color="1" aria-label="Terracotta pad, key 2"></button>
+                <button class="pad" type="button" data-color="2" aria-label="Ochre pad, key 3"></button>
+                <button class="pad" type="button" data-color="3" aria-label="Blue-grey pad, key 4"></button>
+            </div>
+            <div id="overlay" class="overlay"><div><h2 id="message-title">Ready to remember?</h2><p id="message-copy">Watch the pads light up, then repeat the sequence. Each round adds one more note.</p><button id="play" class="action" type="button">Start a sequence</button></div></div>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Press start when you're ready.</p>
+        <p class="keys">Play by tapping a pad or pressing keys 1–4.</p>
+    </main>
+    <script>
+        (() => {
+            const pads = [...document.querySelectorAll('.pad')];
+            const overlay = document.getElementById('overlay');
+            const title = document.getElementById('message-title');
+            const copy = document.getElementById('message-copy');
+            const playButton = document.getElementById('play');
+            const scoreElement = document.getElementById('score');
+            const bestElement = document.getElementById('best');
+            const status = document.getElementById('status');
+            const frequencies = [330, 392, 494, 587];
+            let sequence = [];
+            let inputIndex = 0;
+            let score = 0;
+            let best = Number(localStorage.getItem('playforge-simon-best') || 0);
+            let state = 'ready';
+            let timers = [];
+            let turn = 0;
+            let muted = false;
+            let audio;
+
+            bestElement.textContent = String(best);
+
+            function schedule(callback, delay) {
+                timers.push(setTimeout(callback, delay));
+            }
+
+            function clearTimers() {
+                timers.forEach(clearTimeout);
+                timers = [];
+                turn += 1;
+            }
+
+            function tone(index, duration = 0.22) {
+                if (muted) return;
+                try {
+                    audio ??= new AudioContext();
+                    if (audio.state === 'suspended') audio.resume();
+                    const oscillator = audio.createOscillator();
+                    const gain = audio.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = frequencies[index];
+                    gain.gain.setValueAtTime(0.075, audio.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+                    oscillator.connect(gain).connect(audio.destination);
+                    oscillator.start();
+                    oscillator.stop(audio.currentTime + duration);
+                } catch { /* Audio is optional. */ }
+            }
+
+            function flash(index, duration = 340) {
+                const pad = pads[index];
+                pad.classList.add('is-lit');
+                tone(index, duration / 1000);
+                schedule(() => pad.classList.remove('is-lit'), duration);
+            }
+
+            function playSequence() {
+                clearTimers();
+                const currentTurn = turn;
+                state = 'showing';
+                inputIndex = 0;
+                status.textContent = 'Watch the colors…';
+                sequence.forEach((color, position) => {
+                    schedule(() => {
+                        if (turn === currentTurn && state === 'showing') flash(color);
+                    }, 450 + position * 680);
+                });
+                schedule(() => {
+                    if (turn !== currentTurn || state !== 'showing') return;
+                    state = 'input';
+                    status.textContent = 'Your turn — play the pattern back.';
+                }, 450 + sequence.length * 680);
+            }
+
+            function start() {
+                clearTimers();
+                pads.forEach((pad) => pad.classList.remove('is-lit'));
+                sequence = [];
+                score = 0;
+                scoreElement.textContent = '0';
+                state = 'showing';
+                overlay.hidden = true;
+                status.textContent = 'Watch the colors…';
+                sequence.push(Math.floor(Math.random() * pads.length));
+                playSequence();
+            }
+
+            function gameOver() {
+                state = 'over';
+                clearTimers();
+                pads.forEach((pad) => pad.classList.remove('is-lit'));
+                title.textContent = score ? 'A fine bit of remembering.' : 'The pattern got away.';
+                copy.textContent = `You remembered ${score} ${score === 1 ? 'step' : 'steps'}. Want to see if you can go further?`;
+                playButton.textContent = 'Play again';
+                status.textContent = 'Round over.';
+                overlay.hidden = false;
+                if (score > best) {
+                    best = score;
+                    localStorage.setItem('playforge-simon-best', String(best));
+                    bestElement.textContent = String(best);
+                }
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'playforge:score', gameSlug: 'simon-says', score }, location.origin);
+                }
+            }
+
+            function press(index) {
+                if (state !== 'input') return;
+                flash(index, 150);
+                if (sequence[inputIndex] !== index) {
+                    gameOver();
+                    return;
+                }
+                inputIndex += 1;
+                if (inputIndex < sequence.length) return;
+                score = sequence.length;
+                scoreElement.textContent = String(score);
+                state = 'showing';
+                status.textContent = 'Lovely. Here comes the next one.';
+                sequence.push(Math.floor(Math.random() * pads.length));
+                schedule(playSequence, 550);
+            }
+
+            pads.forEach((pad) => pad.addEventListener('click', () => press(Number(pad.dataset.color))));
+            document.addEventListener('keydown', (event) => {
+                if (event.altKey || event.ctrlKey || event.metaKey || event.target instanceof HTMLButtonElement) return;
+                const index = Number(event.key) - 1;
+                if (index >= 0 && index < pads.length) {
+                    event.preventDefault();
+                    press(index);
+                }
+            });
+            playButton.addEventListener('click', start);
+            document.getElementById('restart').addEventListener('click', start);
+            document.getElementById('sound').addEventListener('click', (event) => {
+                muted = !muted;
+                event.currentTarget.textContent = muted ? 'Sound off' : 'Sound on';
+                event.currentTarget.setAttribute('aria-pressed', String(muted));
+            });
+        })();
+    </script>
+</body>
+</html>
