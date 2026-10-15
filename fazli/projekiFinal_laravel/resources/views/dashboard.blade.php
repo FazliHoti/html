@@ -4,7 +4,7 @@
     <section class="page-shell">
         <div class="mb-8">
             <p class="eyebrow">Your corner of the arcade</p>
-            <h1 class="section-title mt-3">Good to see you, {{ Auth::user()->name }}.</h1>
+            <h1 class="section-title mt-3">{{ str_replace(':name', Auth::user()->name, \App\Models\SiteSetting::text('dashboard.title', 'Good to see you, :name.')) }}</h1>
             <p class="mt-3 max-w-xl leading-7 text-[var(--ink-muted)]">Your saved games and latest scores, all in one easy place.</p>
         </div>
 

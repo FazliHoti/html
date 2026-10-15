@@ -65,7 +65,7 @@ class GameController extends Controller
             'traffic-surge' => '/games/arcade.html?title=Traffic%20Surge&mode=runner',
         ];
 
-        $gameEmbedUrl = $gameEmbedUrls[$game->slug] ?? null;
+        $gameEmbedUrl = $game->embed_url ?: ($gameEmbedUrls[$game->slug] ?? null);
 
         return view('games.show', compact('game', 'relatedGames', 'averageRating', 'favoriteCount', 'leaderboard', 'gameEmbedUrl'));
     }

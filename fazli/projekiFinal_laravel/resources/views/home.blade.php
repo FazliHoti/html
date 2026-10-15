@@ -5,12 +5,12 @@
     <section class="page-shell pb-10 sm:pb-14">
         <div class="home-hero">
             <div>
-                <p class="eyebrow">A little room to play</p>
-                <h1 class="home-title mt-5">A good game, right on time.</h1>
-                <p class="mt-6 max-w-lg text-base leading-7 text-[var(--ink-muted)] sm:text-lg">Small browser games for the space between things. Pick one up, play a round, and get back to your day.</p>
+                <p class="eyebrow">{{ \App\Models\SiteSetting::text('home.eyebrow', 'A little room to play') }}</p>
+                <h1 class="home-title mt-5">{{ \App\Models\SiteSetting::text('home.title', 'A good game, right on time.') }}</h1>
+                <p class="mt-6 max-w-lg text-base leading-7 text-[var(--ink-muted)] sm:text-lg">{{ \App\Models\SiteSetting::text('home.intro', 'Small browser games for the space between things. Pick one up, play a round, and get back to your day.') }}</p>
                 <div class="mt-8 flex flex-wrap gap-3">
-                    <a href="{{ route('games.index') }}" class="btn-primary">Find a game</a>
-                    <a href="{{ route('leaderboard') }}" class="btn-secondary">See the high scores</a>
+                    <a href="{{ route('games.index') }}" class="btn-primary">{{ \App\Models\SiteSetting::text('home.find_game', 'Find a game') }}</a>
+                    <a href="{{ route('leaderboard') }}" class="btn-secondary">{{ \App\Models\SiteSetting::text('home.high_scores', 'See the high scores') }}</a>
                 </div>
                 <div class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-[var(--line)] pt-5 text-sm text-[var(--ink-muted)]">
                     <span><strong class="font-semibold text-[var(--ink)]">{{ $totalGames }}</strong> games to play</span>
@@ -55,7 +55,7 @@
         <div class="flex flex-col gap-3 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="eyebrow">Find your kind of fun</p>
-                <h2 class="section-title mt-3">What sounds good?</h2>
+                <h2 class="section-title mt-3">{{ \App\Models\SiteSetting::text('home.categories_title', 'What sounds good?') }}</h2>
             </div>
             <a href="{{ route('games.index') }}" class="text-sm font-bold text-[var(--accent-strong)] hover:text-[var(--clay)]">Explore the collection</a>
         </div>
@@ -76,9 +76,9 @@
         <div class="flex flex-col gap-3 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="eyebrow">Popular around here</p>
-                <h2 class="section-title mt-3">A few favorites</h2>
+                <h2 class="section-title mt-3">{{ \App\Models\SiteSetting::text('home.popular_title', 'A few favorites') }}</h2>
             </div>
-            <a href="{{ route('games.index') }}" class="text-sm font-bold text-[var(--accent-strong)] hover:text-[var(--clay)]">Browse all</a>
+            <a href="{{ route('games.index') }}" class="text-sm font-bold text-[var(--accent-strong)] hover:text-[var(--clay)]">{{ \App\Models\SiteSetting::text('home.browse_all', 'Browse all') }}</a>
         </div>
 
         <div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -96,7 +96,7 @@
                         </div>
                         <h3 class="mt-4 font-serif text-2xl text-[var(--ink)]">{{ $game->name }}</h3>
                         <p class="mt-2 muted-copy">{{ \Illuminate\Support\Str::limit($game->description, 120) }}</p>
-                        <a href="{{ route('games.show', $game->slug) }}" class="mt-5 inline-flex items-center gap-2 border-b border-[var(--line)] pb-1 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:border-[var(--clay)]">Play a round <span aria-hidden="true">→</span></a>
+                        <a href="{{ route('games.show', $game->slug) }}" class="mt-5 inline-flex items-center gap-2 border-b border-[var(--line)] pb-1 text-sm font-semibold text-[var(--accent-strong)] transition-colors hover:border-[var(--clay)]">{{ \App\Models\SiteSetting::text('home.play_round', 'Play a round') }} <span aria-hidden="true">→</span></a>
                     </div>
                 </article>
             @endforeach

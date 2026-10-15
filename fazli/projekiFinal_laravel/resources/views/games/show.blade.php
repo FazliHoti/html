@@ -4,7 +4,7 @@
     <section class="play-page page-shell">
         <div class="mb-7 flex flex-col gap-6 border-b border-[var(--line)] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <a href="{{ route('games.index') }}" class="text-sm font-medium text-[var(--accent-strong)] transition hover:text-[var(--clay)]">← Back to the game shelf</a>
+                <a href="{{ route('games.index') }}" class="text-sm font-medium text-[var(--accent-strong)] transition hover:text-[var(--clay)]">{{ \App\Models\SiteSetting::text('game.back', '← Back to the game shelf') }}</a>
                 <div class="mt-4 flex flex-wrap items-center gap-3">
                     <span class="chip">{{ $game->category->name }}</span>
                     @if($game->featured)
@@ -17,7 +17,7 @@
 
             <form action="{{ route('games.favorite', $game) }}" method="POST">
                 @csrf
-                <button type="submit" class="btn-secondary">Save to my games</button>
+                <button type="submit" class="btn-secondary">{{ \App\Models\SiteSetting::text('game.favorite', 'Save to my games') }}</button>
             </form>
         </div>
 
@@ -51,7 +51,7 @@
                 <label for="player-score" class="sr-only">Your score</label>
                 <input id="player-score" type="number" name="score" min="0" value="{{ old('score', 0) }}" inputmode="numeric" class="field" />
                 @error('score')<p class="form-error sm:basis-full">{{ $message }}</p>@enderror
-                <button type="submit" class="btn-primary whitespace-nowrap">Add your score</button>
+                <button type="submit" class="btn-primary whitespace-nowrap">{{ \App\Models\SiteSetting::text('game.score_button', 'Add your score') }}</button>
             </form>
         </div>
         <p id="score-feedback" class="score-feedback" role="status" aria-live="polite" hidden></p>
@@ -88,7 +88,7 @@
                     @endif
                     <div>
                         <p class="eyebrow">After the round</p>
-                        <h2 class="mt-2 font-serif text-2xl text-[var(--ink)]">Leave a note</h2>
+                        <h2 class="mt-2 font-serif text-2xl text-[var(--ink)]">{{ \App\Models\SiteSetting::text('game.review_title', 'Leave a note') }}</h2>
                         <p class="mt-2 text-sm leading-6 text-[var(--ink-muted)]">A quick rating helps the next player decide what to try.</p>
                         <form action="{{ route('games.review', $game) }}" method="POST" class="mt-5 space-y-3">
                             @csrf
@@ -104,7 +104,7 @@
                             <label for="review-comment" class="form-label">Anything to add? <span class="font-normal text-[var(--ink-muted)]">(optional)</span></label>
                             <textarea id="review-comment" name="comment" rows="3" placeholder="What stood out?" class="field"></textarea>
                             @error('comment')<p class="form-error">{{ $message }}</p>@enderror
-                            <button type="submit" class="btn-secondary">Share your note</button>
+                            <button type="submit" class="btn-secondary">{{ \App\Models\SiteSetting::text('game.review_button', 'Share your note') }}</button>
                         </form>
                     </div>
                 </div>

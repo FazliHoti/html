@@ -4,7 +4,7 @@
     <section class="mx-auto grid max-w-5xl gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10">
         <div class="max-w-md">
             <p class="eyebrow">A place for your high scores</p>
-            <h1 class="mt-4 font-serif text-4xl leading-tight text-[var(--ink)] sm:text-5xl">Make yourself at home.</h1>
+            <h1 class="mt-4 font-serif text-4xl leading-tight text-[var(--ink)] sm:text-5xl">{{ \App\Models\SiteSetting::text('auth.register_title', 'Make yourself at home.') }}</h1>
             <p class="mt-4 leading-7 text-[var(--ink-muted)]">Keep a few favorites close and save the scores you’re proud of. It only takes a moment to join.</p>
         </div>
         <div class="glass-panel auth-panel">
@@ -32,7 +32,7 @@
                     <label for="register-password-confirmation" class="form-label">Confirm password</label>
                     <input id="register-password-confirmation" type="password" name="password_confirmation" autocomplete="new-password" required class="field" />
                 </div>
-                <button type="submit" class="btn-primary w-full">Create account</button>
+                <button type="submit" class="btn-primary w-full">{{ \App\Models\SiteSetting::text('auth.register_button', 'Create account') }}</button>
             </form>
             <p class="mt-5 border-t border-[var(--line)] pt-4 text-sm text-[var(--ink-muted)]">Already have an account? <a href="{{ route('login') }}" class="font-semibold text-[var(--accent-strong)] underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--clay)]">Log in</a></p>
         </div>

@@ -5,10 +5,10 @@
         <div class="flex flex-col gap-5 border-b border-[var(--line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="eyebrow">Every round counts</p>
-                <h1 class="section-title mt-3">The high scores</h1>
+                <h1 class="section-title mt-3">{{ \App\Models\SiteSetting::text('leaderboard.title', 'The high scores') }}</h1>
                 <p class="mt-3 max-w-lg leading-7 text-[var(--ink-muted)]">A running list of the best games played around here. Yours could be next.</p>
             </div>
-            <a href="{{ route('games.index') }}" class="btn-primary self-start sm:self-auto">Play for a place</a>
+            <a href="{{ route('games.index') }}" class="btn-primary self-start sm:self-auto">{{ \App\Models\SiteSetting::text('leaderboard.button', 'Play for a place') }}</a>
         </div>
         <div class="table-panel mt-7">
             <div class="overflow-x-auto">

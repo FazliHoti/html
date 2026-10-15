@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\GameFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Game extends Model
 {
-    /** @use HasFactory<\Database\Factories\GameFactory> */
+    /** @use HasFactory<GameFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -22,6 +23,7 @@ class Game extends Model
         'is_active',
         'play_count',
         'image_url',
+        'embed_url',
     ];
 
     public function category(): BelongsTo

@@ -122,4 +122,61 @@ class GameHubTest extends TestCase
         ]);
         $this->assertSame(1, $game->fresh()->play_count);
     }
+
+    public function test_admin_can_edit_site_text_and_game_details(): void
+    {
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        $category = Category::factory()->create(['name' => 'Action']);
+        $game = Game::factory()->create([
+            'name' => 'Original game',
+            'slug' => 'original-game',
+            'category_id' => $category->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Edit website copy');
+
+        $this->get(route('admin.game-files', ['file' => 'snake.html']))
+            ->assertOk()
+            ->assertSee('Edit game source')
+            ->assertSee('name="source"', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.content.update'), [
+                'content' => ['home.title' => 'A new arcade headline'],
+            ])
+            ->assertRedirect();
+
+        $this->get(route('home'))->assertSee('A new arcade headline');
+
+        $this->put(route('admin.games.update', $game), [
+            'name' => 'Updated game',
+            'slug' => 'updated-game',
+            'category_id' => $category->id,
+            'description' => 'An updated game description.',
+            'instructions' => 'Press play.',
+            'image_url' => '',
+            'embed_url' => '/games/updated.html',
+            'is_active' => '1',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('games', [
+            'id' => $game->id,
+            'name' => 'Updated game',
+            'slug' => 'updated-game',
+            'embed_url' => '/games/updated.html',
+        ]);
+    }
+
+    public function test_non_admin_cannot_access_admin_dashboard(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.dashboard'))
+            ->assertForbidden();
+
+        $this->get(route('admin.game-files'))
+            ->assertForbidden();
+    }
 }
